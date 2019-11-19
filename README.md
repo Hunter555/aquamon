@@ -2,7 +2,7 @@
 
 A Particle project for Aquarium monitoring and mesh forwarding to MQTT for Particle and home assistant. It is currently running on a Particle Argon. This reads temperature from a waterproof onewire temperature probe (Model DS18B20) and sump water level using an eTape Liquid Level Sensor. These readings are published via MQTT to a mosquitto broker to get the readings into homeassistant. A PH probe will be added in future.
 
-The monitor also subscribes to a mesh network and forwards payloads from my power monitor running on a Particle Xenon.
+The monitor also subscribes to a mesh network and forwards payloads from my [power monitor](https://github.com/Hunter555/Powermon) running on a Particle Xenon.
 
 ## Welcome
 
