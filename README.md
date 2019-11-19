@@ -1,8 +1,8 @@
 # Aquamon
 
-A Particle project named Aquamon
+A Particle project for Aquarium monitoring and mesh forwarding to MQTT for Particle and home assistant
 
-## Welcome to your project!
+## Welcome
 
 Every new Particle project is composed of 3 important elements that you'll see have been created in your project directory for Aquamon.
 
