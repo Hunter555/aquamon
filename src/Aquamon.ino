@@ -1,3 +1,5 @@
+
+
 // This #include statement was automatically added by the Particle IDE.
 #include <OneWire.h>
 
@@ -21,10 +23,16 @@ const unsigned long postingInterval = 1L * 60L * 1000L; // Post data every 1 min
 #define SERIESRESISTOR 560
 #define WATERSENSORPIN A0
 #define WATERRESISTIDEAL 250
-int waterBuffer[10], temp, retryCount;
-unsigned long int avgValue;
-float waterLevel;
-unsigned long lastSync = millis();
+#define MV_PERUNIT 0.08
+#define PH_PIN A2
+#define PH_OFFSET 0.00            //deviation compensation
+#define PH_B 2.132318888521336
+#define PH_SLOPE 0.00198478332782
+int buffer[10], retryCount, temporary;
+uint32_t  avgValue, waterLevel;
+float phValue;
+uint32_t lastSync = millis();
+char stringBuffer[60];
 
 void setup() {
 
@@ -32,6 +40,7 @@ void setup() {
     Serial.begin(9600);
     pinMode(A0, INPUT);
     pinMode(A1, INPUT);
+    pinMode(PH_PIN, INPUT);
     Time.setFormat(TIME_FORMAT_ISO8601_FULL);
     Time.zone(10);
     
@@ -106,42 +115,61 @@ void mqttpublish() {
         delay(50);
         retryCount++;
     }
-    int waterLevel = getWaterLevelReading();
+    Particle.publish("Temperature reading", String::format("%.1f,", sensor.celsius()));
+    readPH();
     data = String("{\"time\": \"" + Time.format(Time.now(), TIME_FORMAT_DEFAULT) + "\"," +
                         "\"temperature\":" + String::format("%.1f,", sensor.celsius()) +
-                        "\"water_level\":" + String(waterLevel) +
+                        "\"pH\":" + String::format("%.2f,", phValue) +
+                        //"\"water_level\": 0" + // String(getWaterLevelReading()) +
                         "}");
     Particle.publish("Sending payload", data);
     client.publish(topic,data);
-    //int lightLevel = analogRead(LIGHTPIN); // Read from light sensor.
     lastConnectionTime = millis();
+}
+
+void readPH() {
+    for (int i = 0; i < 10; i++){
+        buffer[i] = analogRead(PH_PIN);
+        delay(10);
+    }
+    avgValue = getFilteredReading();
+    Particle.publish("pH probe voltage ", String(avgValue));
+    phValue = (avgValue*PH_SLOPE)+PH_B+PH_OFFSET;
+    Particle.publish("pH probe ph ", String(phValue));
 }
 
 int getWaterLevelReading() {
     for (int i = 0; i < 10; i++){
-        waterBuffer[i] = analogRead(WATERSENSORPIN);
+        buffer[i] = analogRead(WATERSENSORPIN);
         delay(10);
     }
+    avgValue = getFilteredReading();
+    Particle.publish("Water level raw avg", String(avgValue));
+    //waterLevel = (4095 / (float)avgValue) -1;
+    //Particle.publish("Water level waterLevel", String(waterLevel));
+    //waterLevel = waterLevel * SERIESRESISTOR;
+    //Particle.publish("Water level reading", String(waterLevel));
+    //return waterLevel / WATERRESISTIDEAL * 100;
+    return 100;
+}
+
+float getFilteredReading() {
     for(int i=0; i<9; i++)        //sort the analog from small to large
     {
         for(int j=i+1; j<10; j++)
         {
-          if(waterBuffer[i] > waterBuffer[j])
+          if(buffer[i] > buffer[j])
           {
-            temp = waterBuffer[i];
-            waterBuffer[i] = waterBuffer[j];
-            waterBuffer[j] = temp;
+            temporary = buffer[i];
+            buffer[i] = buffer[j];
+            buffer[j] = temporary;
           }
         }
     }
     avgValue=0;
     for (int i=2; i<8; i++) {                     //take the average value of 6 center sample
-        avgValue += waterBuffer[i];
+        avgValue += buffer[i];
     }
     avgValue = avgValue / 6;
-    Particle.publish("Water level raw avg", String(avgValue));
-    waterLevel = (4095 / (float)avgValue) -1;
-    waterLevel = SERIESRESISTOR * waterLevel;
-    Particle.publish("Water level reading", String(waterLevel));
-    return waterLevel / WATERRESISTIDEAL * 100;
+    return avgValue;
 }
