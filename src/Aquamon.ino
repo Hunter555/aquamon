@@ -1,5 +1,3 @@
-
-
 // This #include statement was automatically added by the Particle IDE.
 #include <OneWire.h>
 
@@ -119,7 +117,7 @@ void mqttpublish() {
     readPH();
     data = String("{\"time\": \"" + Time.format(Time.now(), TIME_FORMAT_DEFAULT) + "\"," +
                         "\"temperature\":" + String::format("%.1f,", sensor.celsius()) +
-                        "\"pH\":" + String::format("%.2f,", phValue) +
+                        "\"pH\":" + String::format("%.2f", phValue) +
                         //"\"water_level\": 0" + // String(getWaterLevelReading()) +
                         "}");
     Particle.publish("Sending payload", data);
